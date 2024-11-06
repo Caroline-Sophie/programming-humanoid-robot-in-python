@@ -18,8 +18,8 @@
     # to the angle and time of the point. The first Bezier param describes the handle that controls the curve
     # preceding the point, the second describes the curve following the point.
 '''
-
-
+from joint_control.keyframes import leftBackToStand, leftBellyToStand, wipe_forehead, rightBellyToStand, \
+    rightBackToStand
 from pid import PIDAgent
 from keyframes import hello
 
@@ -33,19 +33,81 @@ class AngleInterpolationAgent(PIDAgent):
         super(AngleInterpolationAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
         self.keyframes = ([], [], [])
 
+
     def think(self, perception):
         target_joints = self.angle_interpolation(self.keyframes, perception)
-        target_joints['RHipYawPitch'] = target_joints['LHipYawPitch'] # copy missing joint in keyframes
+        # Check if 'LHipYawPitch' exists in target_joints before copying to 'RHipYawPitch'
+        if 'LHipYawPitch' in target_joints:
+            target_joints['RHipYawPitch'] = target_joints['LHipYawPitch']
         self.target_joints.update(target_joints)
         return super(AngleInterpolationAgent, self).think(perception)
 
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
-        # YOUR CODE HERE
+
+        # Unpack keyframes data
+        names, times, keys = keyframes
+
+        # If there are no keyframes, return empty target joints
+        if not times or not keys:
+            return target_joints
+
+        # Calculate total duration of the keyframes to normalize perception time
+        total_duration = max(max(t) for t in times)
+
+
+        # Scale perception time to fit within the range of the keyframes
+        scaled_time = (perception.time % total_duration)
+
+        # Iterate over each joint
+        for i, name in enumerate(names):
+            joint_times = times[i]
+            joint_keys = keys[i]
+
+            # Loop through time intervals for the joint's motion
+            for j in range(len(joint_times) - 1):
+                t0, t1 = joint_times[j], joint_times[j + 1]
+
+                # Only interpolate if the scaled time is within the keyframe interval
+                if t0 <= scaled_time <= t1:
+                    # Define key angles and dynamic Bezier control points for each interval
+                    p0 = joint_keys[j][0]
+                    p3 = joint_keys[j + 1][0]
+
+                    # Dynamically adjust control points for fuller motion
+                    if isinstance(joint_keys[j], list) and len(joint_keys[j]) > 1:
+                        _, h1_time, h1_angle = joint_keys[j][1]
+                        _, h2_time, h2_angle = joint_keys[j + 1][2]
+
+                        # Set control points to emphasize the movement
+                        p1 = p0 + 1.5 * h1_angle
+                        p2 = p3 + 1.5 * h2_angle
+                    else:
+                        # Default control points for smoother but still full motion
+                        p1 = p0 + 0.75 * (p3 - p0)
+                        p2 = p3 - 0.75 * (p3 - p0)
+
+                    # Calculate normalized time within this interval
+                    elapsed_time = scaled_time - t0
+                    total_time = t1 - t0
+                    normalized_t = elapsed_time / total_time
+
+                    # Apply cubic Bezier interpolation
+                    interpolated_angle = (1 - normalized_t) ** 3 * p0 + \
+                                         3 * (1 - normalized_t) ** 2 * normalized_t * p1 + \
+                                         3 * (1 - normalized_t) * normalized_t ** 2 * p2 + \
+                                         normalized_t ** 3 * p3
+
+                    # Set interpolated angle for joint
+                    target_joints[name] = interpolated_angle
+                    break  # Break since we've found the right interval
+
+
 
         return target_joints
 
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
-    agent.keyframes = hello()  # CHANGE DIFFERENT KEYFRAMES
+    agent.keyframes = leftBackToStand()  # CHANGE DIFFERENT KEYFRAMES
+    #agent.keyframes = wipe_forehead()
     agent.run()

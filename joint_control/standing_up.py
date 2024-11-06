@@ -4,8 +4,8 @@
     complete the `StandingUpAgent.standing_up` function, e.g. call keyframe motion corresponds to current posture
 
 '''
-
-
+from joint_control.keyframes import rightBackToStand, rightBellyToStand, leftBackToStand, leftBellyToStand, hello, \
+    standing
 from recognize_posture import PostureRecognitionAgent
 
 
@@ -15,8 +15,23 @@ class StandingUpAgent(PostureRecognitionAgent):
         return super(StandingUpAgent, self).think(perception)
 
     def standing_up(self):
-        posture = self.posture
-        # YOUR CODE HERE
+        # If standing up is already in progress or the robot is already standing, exit
+
+            posture = self.posture
+
+            # Choose the keyframe motion based on posture
+            if posture == 'Back':
+                self.keyframes = leftBackToStand()
+            elif posture == 'Belly':
+                self.keyframes = rightBellyToStand()
+            elif posture == 'Left':
+                self.keyframes = rightBackToStand()
+            elif posture == 'Right':
+                self.keyframes = leftBackToStand()
+
+
+
+
 
 
 class TestStandingUpAgent(StandingUpAgent):
@@ -29,14 +44,15 @@ class TestStandingUpAgent(StandingUpAgent):
                  sync_mode=True):
         super(TestStandingUpAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
         self.stiffness_on_off_time = 0
-        self.stiffness_on_cycle = 10  # in seconds
-        self.stiffness_off_cycle = 3  # in seconds
+        self.stiffness_on_cycle = 20  # in seconds
+        self.stiffness_off_cycle = 2  # in seconds
 
     def think(self, perception):
         action = super(TestStandingUpAgent, self).think(perception)
         time_now = perception.time
         if time_now - self.stiffness_on_off_time < self.stiffness_off_cycle:
             action.stiffness = {j: 0 for j in self.joint_names}  # turn off joints
+
         else:
             action.stiffness = {j: 1 for j in self.joint_names}  # turn on joints
         if time_now - self.stiffness_on_off_time > self.stiffness_on_cycle + self.stiffness_off_cycle:

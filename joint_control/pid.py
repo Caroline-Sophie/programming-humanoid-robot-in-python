@@ -34,10 +34,10 @@ class PIDController(object):
         self.e1 = np.zeros(size)
         self.e2 = np.zeros(size)
         # ADJUST PARAMETERS BELOW
-        delay = 0
-        self.Kp = 0
-        self.Ki = 0
-        self.Kd = 0
+        delay = 2
+        self.Kp = 10
+        self.Ki = 0.2
+        self.Kd = 0.2
         self.y = deque(np.zeros(size), maxlen=delay + 1)
 
     def set_delay(self, delay):
@@ -52,9 +52,31 @@ class PIDController(object):
         @param sensor: current values from sensor
         @return control signal
         '''
-        # YOUR CODE HERE
+        # Calculate the error between target and sensor values
+        error = target - sensor
+
+        # Proportional term
+        p = self.Kp * error
+
+        # Integral term
+        i = self.Ki * (self.e1 + error) * self.dt
+
+        # Derivative term
+        d = self.Kd * (error - self.e1) / self.dt
+
+        # Control signal (PID)
+        self.u = p + i + d
+
+        # Update the error buffers
+        self.e2 = self.e1
+        self.e1 = error
+
+        # Model prediction buffer update (if needed for delay)
+        self.y.append(sensor + self.u * self.dt)
 
         return self.u
+
+
 
 
 class PIDAgent(SparkAgent):
