@@ -4,8 +4,7 @@
     complete the `StandingUpAgent.standing_up` function, e.g. call keyframe motion corresponds to current posture
 
 '''
-from joint_control.keyframes import rightBackToStand, rightBellyToStand, leftBackToStand, leftBellyToStand, hello, \
-    standing
+from joint_control.keyframes import rightBackToStand, rightBellyToStand, leftBackToStand, leftBellyToStand, hello
 from recognize_posture import PostureRecognitionAgent
 
 
