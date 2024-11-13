@@ -15,6 +15,7 @@ from joint_control.keyframes import leftBellyToStand, rightBackToStand, leftBack
 from keyframes import hello
 import pickle
 import numpy as np
+import os
 
 class PostureRecognitionAgent(AngleInterpolationAgent):
     def __init__(self, simspark_ip='localhost',
@@ -27,7 +28,11 @@ class PostureRecognitionAgent(AngleInterpolationAgent):
         self.posture_classifier = self.load_classifier('robot_pose.pkl')
 
     def load_classifier(self, filename):
-        with open(filename, 'rb') as file:
+        current_dir = os.path.abspath(os.path.dirname(__file__))
+        file_path = os.path.join(current_dir, filename)
+
+        # changed from filename to filepath because the filename itself did not work for me
+        with open(file_path, 'rb') as file:
             classifier = pickle.load(file)
         return classifier
 
